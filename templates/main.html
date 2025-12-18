@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Management System</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f6f2ff;
+        }
+        .navbar {
+            background: #6f42c1;
+        }
+        .navbar-brand, .nav-link, .btn-outline-light {
+            color: #fff !important;
+        }
+        .card {
+            border-radius: 12px;
+        }
+        .btn-purple {
+            background: #6f42c1;
+            color: #fff;
+        }
+        .btn-purple:hover {
+            background: #59339d;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/home">BlogApp</a>
+
+        <div class="ms-auto d-flex gap-2">
+            {% if page == "first_page" or page == "register" or page == "login" or page == "Home" %}
+                <a href="/home" class="btn btn-outline-light">Home</a>
+                <a href="/login" class="btn btn-outline-light">Login</a>
+                <a href="/register" class="btn btn-outline-light">Register</a>
+            {% endif %}
+
+            {% if page in ["profile", "screen", "add_blog"] %}
+                <a href="/profile" class="btn btn-outline-light">Profile</a>
+                <a href="/add_blog" class="btn btn-outline-light">New Blog</a>
+                <form action="/logout" method="post">
+                    <button class="btn btn-danger">Logout</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+
+{% if page == "first_page" %}
+    <div class="text-center mt-5">
+        <h2 class="fw-bold">Welcome to Blog Management System</h2>
+        <p class="text-muted">Write. Share. Express.</p>
+    </div>
+{% endif %}
+
+{% if page == "register" %}
+<div class="row justify-content-center">
+    <div class="col-md-5 card p-4 shadow">
+        <h3 class="text-center mb-3">Create Account</h3>
+        <form action="/register" method="post">
+            <input class="form-control mb-3" name="name" placeholder="Name" required>
+            <input class="form-control mb-3" type="email" name="gmail" placeholder="Gmail" required>
+            <input class="form-control mb-3" type="password" name="password" placeholder="Password" required>
+            <input class="form-control mb-3" type="password" name="confirm" placeholder="Confirm Password" required>
+            <button class="btn btn-purple w-100">Register</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if page == "login" %}
+<div class="row justify-content-center">
+    <div class="col-md-5 card p-4 shadow">
+        <h3 class="text-center mb-3">Login</h3>
+        <form action="/login" method="post">
+            <input class="form-control mb-3" type="email" name="gmail" placeholder="Gmail" required>
+            <input class="form-control mb-3" type="password" name="password" placeholder="Password" required>
+            <button class="btn btn-purple w-100">Login</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if page == "profile" %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card p-3 shadow">
+            <h4>{{ user.name }}</h4>
+            <p class="text-muted">{{ user.gmail }}</p>
+            <hr>
+            <p><strong>Followers:</strong> {{ followers }}</p>
+            <p><strong>Following:</strong> {{ following }}</p>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+
+        {% for post in posts %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                {% if post.image %}
+                   <img src="{{ post.image }}" class="img-fluid rounded mb-2 d-block mx-auto" style="width: 500px; height: 500px; object-fit: cover; aspect-ratio: 1 / 1;">
+                {% endif %}
+                <h2><u>{{ post.title }}</u></h2>
+                <h6 class="text-muted">By {{ user.name }} | {{ post.created_at.strftime("%d %b %Y • %I:%M %p") }}</h6><br>
+                <p>{{ post.content }}</p>
+                <button id="like-button" class="like-btn">
+                <i class="fa fa-heart"></i>
+                <span id="like-count">0</span>
+            </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if page == "add_blog" %}
+<div class="row justify-content-center">
+    <div class="col-md-6 card p-4 shadow">
+        <h4 class="text-center mb-3">Create New Blog</h4>
+
+        <form method="post" action="/add_blog" enctype="multipart/form-data">
+            <input class="form-control mb-3" name="title" placeholder="Title" required>
+            <textarea class="form-control mb-3" name="content" rows="5" placeholder="Write your thoughts..." required></textarea>
+            <input class="form-control mb-3" type="url" name="image_url" placeholder="Paste image URL (optional)">
+            <div class="text-center text-muted mb-2">OR</div>
+            <input class="form-control mb-3" type="file" name="image_file" accept="image/*">
+            <button class="btn btn-purple w-100">Publish</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+</div>
+
+</body>
+</html>
