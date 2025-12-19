@@ -76,6 +76,7 @@ class Follow(db.Model):
     following_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
 with app.app_context():
+    db.drop_all()
     db.create_all()
 
 @app.context_processor
@@ -89,6 +90,10 @@ def user_name():
 def home():
     return render_template("main.html", page="first_page", is_logged_in=("user_id" in session))
 
+# @app.route("/")
+# def home():
+#     posts = Post.query.order_by(Post.created_at.desc()).all()
+#     return render_template("main.html",page="first_page",posts=posts)
 
 @app.route("/register")
 def show_register():
@@ -308,43 +313,109 @@ def add_blog():
 
     return redirect(url_for("profile"))
 
-@app.route("/comment/<int:post_id>", methods=["POST"])
-def add_comment(post_id):
+
+@app.route("/delete_blog/<int:blog_id>", methods=["POST"])
+def delete_blog(blog_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    text = request.form.get("comment")
+    blog = Post.query.get_or_404(blog_id)
 
-    if text:
-        new_comment = Comment(
-            comment=text,
-            user_id=session["user_id"],
-            post_id=post_id
-        )
-        db.session.add(new_comment)
-        db.session.commit()
+    if blog.user_id != session["user_id"]:
+        return "Unauthorized", 403
+
+    db.session.delete(blog)
+    db.session.commit()
 
     return redirect(url_for("profile"))
 
 
-@app.route("/like/<int:post_id>", methods=["POST"])
-def like_post(post_id):
+# @app.route("/comment/<int:post_id>", methods=["POST"])
+# def add_comment(post_id):
+#     if "user_id" not in session:
+#         return redirect(url_for("login"))
+
+#     text = request.form.get("comment")
+
+#     if text:
+#         new_comment = Comment(
+#             comment=text,
+#             user_id=session["user_id"],
+#             post_id=post_id
+#         )
+#         db.session.add(new_comment)
+#         db.session.commit()
+
+#     return redirect(url_for("profile"))
+
+
+# @app.route("/like/<int:post_id>", methods=["POST"])
+# def like_post(post_id):
+#     if "user_id" not in session:
+#         return redirect(url_for("login"))
+
+#     existing_like = Like.query.filter_by(user_id=session["user_id"],post_id=post_id).first()
+
+#     if existing_like:
+#         db.session.delete(existing_like)  
+#     else:
+#         new_like = Like(
+#             user_id=session["user_id"],
+#             post_id=post_id
+#         )
+#         db.session.add(new_like)
+
+#     db.session.commit()
+#     return redirect(url_for("profile"))
+
+
+@app.route("/edit_blog/<int:blog_id>", methods=["GET"])
+def edit_blog(blog_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    existing_like = Like.query.filter_by(
-        user_id=session["user_id"],
-        post_id=post_id
-    ).first()
+    blog = Post.query.get_or_404(blog_id)
 
-    if existing_like:
-        db.session.delete(existing_like)  # Unlike
-    else:
-        new_like = Like(
-            user_id=session["user_id"],
-            post_id=post_id
+    if blog.user_id != session["user_id"]:
+        return "Unauthorized", 403
+
+    return render_template("main.html", page="edit_blog", blog=blog)
+
+
+@app.route("/update_blog/<int:blog_id>", methods=["POST"])
+def update_blog(blog_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    blog = Post.query.get_or_404(blog_id)
+
+    if blog.user_id != session["user_id"]:
+        return "Unauthorized", 403
+
+    title = request.form.get("title")
+    content = request.form.get("content")
+    image_url = request.form.get("image_url")
+    image_file = request.files.get("image_file")
+
+    if not title or not content:
+        return render_template(
+            "main.html",
+            page="edit_blog",
+            blog=blog,
+            error="Title and content are required"
         )
-        db.session.add(new_like)
+
+    blog.title = title
+    blog.content = content
+
+    if image_file and image_file.filename:
+        filename = secure_filename(image_file.filename)
+        save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        image_file.save(save_path)
+        blog.image = f"/static/uploads/{filename}"
+
+    elif image_url:
+        blog.image = image_url
 
     db.session.commit()
     return redirect(url_for("profile"))
