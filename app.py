@@ -37,6 +37,7 @@ class User(db.Model):
     name = db.Column(db.String(80), nullable=False, unique=True)
     gmail = db.Column(db.String(200), nullable=False, unique=True)
     password = db.Column(db.Text, nullable=False)
+    profile_pic = db.Column(db.String(300)) 
     posts = db.relationship("Post", backref="author", lazy=True)
     comments = db.relationship("Comment", backref="author", lazy=True)
     followers = db.relationship("Follow", foreign_keys="Follow.following_id",backref="following",lazy=True)
@@ -62,6 +63,7 @@ class Comment(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
+
 class Like(db.Model):
     __tablename__ = "likes"
     id = db.Column(db.Integer, primary_key=True)
@@ -74,6 +76,7 @@ class Follow(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     follower_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     following_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
 
 with app.app_context():
     db.drop_all()
@@ -253,6 +256,24 @@ def screen():
         return redirect(url_for("login"))
     
     return render_template("main.html", page="screen", is_logged_in=True)
+
+@app.route("/update_profile_pic", methods=["POST"])
+def update_profile_pic():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    file = request.files.get("profile_pic")
+    if file and file.filename:
+        filename = secure_filename(file.filename)
+        path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(path)
+
+        user = db.session.get(User, session["user_id"])
+        user.profile_pic = f"/static/uploads/{filename}"
+        db.session.commit()
+
+    return redirect(url_for("profile"))
+
 
 
 @app.route("/profile")
