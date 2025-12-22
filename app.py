@@ -312,43 +312,6 @@ def edit_profile():
     return render_template("main.html",page="edit_profile",user=user,followers=followers,following=following)
 
 
-# @app.route("/profile")
-# def profile():
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
-#     is_following = False
-
-#     user = db.session.get(User, session["user_id"])
-
-#     if not user:
-#         session.clear()
-#         return redirect(url_for("login"))
-
-#     posts = Post.query.filter_by(user_id=user.id)\
-#                       .order_by(Post.created_at.desc())\
-#                       .all()
-    
-    
-#     if "user_id" in session and session["user_id"] != user.id:
-#         is_following = Follow.query.filter_by(
-#             follower_id=session["user_id"],
-#             following_id=user.id
-#         ).first() is not None
-
-#     followers = Follow.query.filter_by(follower_id=user.id).count()
-#     following = Follow.query.filter_by(following_id=user.id).count()
-    
-
-
-#     return render_template(
-#         "main.html",
-#         page="profile",
-#         user=user,
-#         posts=posts,
-#         followers=followers,
-#         following=following
-#     )
-    
 @app.route("/profile")
 def profile():
     if "user_id" not in session:
@@ -439,27 +402,6 @@ def delete_blog(blog_id):
 
     return redirect(url_for("profile"))
 
-
-# @app.route("/follow/<int:user_id>", methods=["POST"])
-# def follow_user(user_id):
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
-
-#     if session["user_id"] == user_id:
-#         return redirect(request.referrer)
-
-#     existing = Follow.query.filter_by(follower_id=session["user_id"],following_id=user_id).first()
-
-#     if existing:
-#         db.session.delete(existing)  
-#     else:
-#         db.session.add(Follow(
-#             follower_id=session["user_id"],
-#             following_id=user_id
-#         ))
-
-#     db.session.commit()
-#     return redirect(request.referrer)
 
 @app.route("/follow/<int:user_id>", methods=["POST"])
 def follow_user(user_id):
@@ -571,6 +513,17 @@ def update_blog(blog_id):
     db.session.commit()
     return redirect(url_for("profile"))
 
+@app.route("/blog/<int:post_id>")
+def blog_detail(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    return render_template(
+        "main.html",
+        page="blog_detail",
+        post=post,
+        is_logged_in=("user_id" in session)
+    )
+
 
 # @app.route("/comment", methods=["POST"])
 # def comment():
@@ -616,5 +569,3 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-# look at the logic of follow and unfollow
