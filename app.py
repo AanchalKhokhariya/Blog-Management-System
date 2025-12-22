@@ -43,6 +43,7 @@ class User(db.Model):
     followers = db.relationship("Follow", foreign_keys="Follow.following_id",backref="following",lazy=True)
     following = db.relationship("Follow", foreign_keys="Follow.follower_id", backref="follower", lazy=True)
 
+
 class Post(db.Model):
     __tablename__ = "posts"
     id = db.Column(db.Integer, primary_key=True)
@@ -79,7 +80,6 @@ class Follow(db.Model):
 
 
 with app.app_context():
-    db.drop_all()
     db.create_all()
 
 @app.context_processor
@@ -89,14 +89,18 @@ def user_name():
     return {"name": ""}
 
 
+
 @app.route("/")
 def home():
-    return render_template("main.html", page="first_page", is_logged_in=("user_id" in session))
+    posts = Post.query.order_by(Post.created_at.desc()).all()
 
-# @app.route("/")
-# def home():
-#     posts = Post.query.order_by(Post.created_at.desc()).all()
-#     return render_template("main.html",page="first_page",posts=posts)
+    return render_template(
+        "main.html",
+        page="home",
+        posts=posts,
+        is_logged_in=("user_id" in session)
+    )
+
 
 @app.route("/register")
 def show_register():
@@ -254,8 +258,30 @@ def reset_password():
 def screen():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    
-    return render_template("main.html", page="screen", is_logged_in=True)
+
+    current_user_id = session["user_id"]
+
+    posts = (
+        Post.query
+        .filter(Post.user_id != current_user_id)
+        .order_by(Post.created_at.desc())
+        .all()
+    )
+
+    following_ids = {
+        f.following_id
+        for f in Follow.query.filter_by(follower_id=current_user_id).all()
+    }
+
+    return render_template(
+        "main.html",
+        page="screen",
+        posts=posts,
+        following_ids=following_ids,
+        is_logged_in=True
+    )
+
+
 
 @app.route("/update_profile_pic", methods=["POST"])
 def update_profile_pic():
@@ -272,26 +298,89 @@ def update_profile_pic():
         user.profile_pic = f"/static/uploads/{filename}"
         db.session.commit()
 
-    return redirect(url_for("profile"))
+    return redirect(url_for("edit_profile"))
+
+@app.route("/edit_profile")
+def edit_profile():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, session["user_id"])
+    followers = Follow.query.filter_by(follower_id=user.id).count()
+    following = Follow.query.filter_by(following_id=user.id).count()
+
+    return render_template("main.html",page="edit_profile",user=user,followers=followers,following=following)
 
 
+# @app.route("/profile")
+# def profile():
+#     if "user_id" not in session:
+#         return redirect(url_for("login"))
+#     is_following = False
 
+#     user = db.session.get(User, session["user_id"])
+
+#     if not user:
+#         session.clear()
+#         return redirect(url_for("login"))
+
+#     posts = Post.query.filter_by(user_id=user.id)\
+#                       .order_by(Post.created_at.desc())\
+#                       .all()
+    
+    
+#     if "user_id" in session and session["user_id"] != user.id:
+#         is_following = Follow.query.filter_by(
+#             follower_id=session["user_id"],
+#             following_id=user.id
+#         ).first() is not None
+
+#     followers = Follow.query.filter_by(follower_id=user.id).count()
+#     following = Follow.query.filter_by(following_id=user.id).count()
+    
+
+
+#     return render_template(
+#         "main.html",
+#         page="profile",
+#         user=user,
+#         posts=posts,
+#         followers=followers,
+#         following=following
+#     )
+    
 @app.route("/profile")
 def profile():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
     user = db.session.get(User, session["user_id"])
+    if not user:
+        session.clear()
+        return redirect(url_for("login"))
 
     posts = Post.query.filter_by(user_id=user.id)\
-                  .order_by(Post.created_at.desc())\
-                  .all()
+                      .order_by(Post.created_at.desc())\
+                      .all()
 
-    followers = Follow.query.filter_by(follower_id=user.id).count()
-    following = Follow.query.filter_by(following_id=user.id).count()
+    followers = Follow.query.filter_by(following_id=user.id).count()
+    following = Follow.query.filter_by(follower_id=user.id).count()
 
-    return render_template("main.html", page="profile", user=user, posts=posts, followers=followers, following=following)
-    
+    is_following = Follow.query.filter_by(
+        follower_id=session["user_id"],
+        following_id=user.id
+    ).first() is not None
+
+    return render_template(
+        "main.html",
+        page="profile",
+        user=user,
+        posts=posts,
+        followers=followers,
+        following=following,
+        is_following=is_following
+    )
+
 
 @app.route("/add_blog", methods=["GET", "POST"])
 def add_blog():
@@ -349,6 +438,52 @@ def delete_blog(blog_id):
     db.session.commit()
 
     return redirect(url_for("profile"))
+
+
+# @app.route("/follow/<int:user_id>", methods=["POST"])
+# def follow_user(user_id):
+#     if "user_id" not in session:
+#         return redirect(url_for("login"))
+
+#     if session["user_id"] == user_id:
+#         return redirect(request.referrer)
+
+#     existing = Follow.query.filter_by(follower_id=session["user_id"],following_id=user_id).first()
+
+#     if existing:
+#         db.session.delete(existing)  
+#     else:
+#         db.session.add(Follow(
+#             follower_id=session["user_id"],
+#             following_id=user_id
+#         ))
+
+#     db.session.commit()
+#     return redirect(request.referrer)
+
+@app.route("/follow/<int:user_id>", methods=["POST"])
+def follow_user(user_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if session["user_id"] == user_id:
+        return redirect(request.referrer)
+
+    existing = Follow.query.filter_by(
+        follower_id=session["user_id"],
+        following_id=user_id
+    ).first()
+
+    if existing:
+        db.session.delete(existing)  
+    else:
+        db.session.add(Follow(
+            follower_id=session["user_id"],
+            following_id=user_id
+        ))
+
+    db.session.commit()
+    return redirect(request.referrer)
 
 
 # @app.route("/comment/<int:post_id>", methods=["POST"])
@@ -419,12 +554,7 @@ def update_blog(blog_id):
     image_file = request.files.get("image_file")
 
     if not title or not content:
-        return render_template(
-            "main.html",
-            page="edit_blog",
-            blog=blog,
-            error="Title and content are required"
-        )
+        return render_template("main.html",page="edit_blog",blog=blog,error="Title and content are required")
 
     blog.title = title
     blog.content = content
@@ -440,41 +570,6 @@ def update_blog(blog_id):
 
     db.session.commit()
     return redirect(url_for("profile"))
-
-
-
-# @app.route("/profile")
-# def profile():
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
-    
-#     user = db.session.get(User, session["user_id"])
-#     posts = Post.query.filter_by(user_id=user.id).all()
-#     followers = Follow.query.filter_by(follower_id=user.id).count()
-#     following = Follow.query.filter_by(following_id=user.id).count()
-    
-#     return render_template("main.html", user=user, posts=posts, followers=followers, following=following)
-
-
-# @app.route("/add_blogs")
-# def add_blog():
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
-    
-#     title = request.form.get("title")
-#     content = request.form.get("content")
-#     image = request.form.get("image")
-
-#     new_blog = Post(
-#         title = title,
-#         content = content,
-#         image = image
-#     )
-
-#     db.session.add(new_blog)
-#     db.session.commit()
-
-#     return redirect("/profile")
 
 
 # @app.route("/comment", methods=["POST"])
@@ -512,25 +607,6 @@ def update_blog(blog_id):
 #     db.session.commit()
 #     return redirect(request.referrer)
 
-
-# @app.route("/follow/<int:user_id>")
-# def follow_user(user_id):
-#     if "user_id" not in session or session["user_id"] == user_id:
-#         return redirect(request.referrer)
-
-#     existing = Follow.query.filter_by(follower_id=session["user_id"],following_id=user_id).first()
-
-#     if existing:
-#         db.session.delete(existing)
-#     else:
-#         db.session.add(Follow(
-#             follower_id=session["user_id"],
-#             following_id=user_id
-#         ))
-
-#     db.session.commit()
-#     return redirect(request.referrer)
-
     
 @app.route("/logout", methods=["POST"])
 def logout():
@@ -541,3 +617,4 @@ def logout():
 if __name__ == "__main__":
     app.run(debug=True)
 
+# look at the logic of follow and unfollow
