@@ -6,6 +6,10 @@
     <title>Blog Management System</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="cdn.jsdelivr.net">
+
+
 
     <style>
         body {
@@ -47,6 +51,7 @@
             {% endif %}
 
             {% if page in ["profile", "screen", "add_blog", "edit_profile"] %}
+                <a href="/screen" class="btn btn-outline-light">Blogs</a>
                 <a href="/profile" class="btn btn-outline-light">Profile</a>
                 <a href="/add_blog" class="btn btn-outline-light">New Blog</a>
                 <a href="/edit_profile" class="btn btn-outline-light">Edit Profile</a>
@@ -69,7 +74,7 @@
 {% endif %}
 
 
-{% if page == "home" or page == "screen" %}
+{% if page == "home" or page == "screen"%}
 <div class="row g-4">
 
     {% for post in posts %}
@@ -109,6 +114,54 @@
                     {{ post.content[:120] }}...
                 </p>
 
+                {% if "user_id" in session %}
+                    {% set liked = post.likes
+                        | selectattr("user_id", "equalto", session.get("user_id"))
+                        | list | length > 0
+                    %}
+
+                    <a href="{{ url_for('like_post', post_id=post.id) }}"
+                    class="btn btn-sm {{ 'btn-danger' if liked else 'btn-outline-danger' }} p-1">
+
+                        <i class="bi {{ 'bi-heart-fill' if liked else 'bi-heart' }}"></i>
+                        <span class="ms-1">{{ post.likes | length }}</span>
+                    </a>
+
+                {% else %}
+                <a href="{{ url_for('login') }}"
+                class="btn btn-sm btn-outline-danger p-1">
+                    <i class="bi bi-heart"></i>
+                    <span>{{ post.likes | length }}</span>
+                </a>
+                {% endif %}
+
+
+
+                <form action="{{ url_for('add_comment', post_id=post.id) }}" method="POST" class="mt-2">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            name="comment"
+                            class="form-control"
+                            placeholder="Write a comment..."
+                            required
+                        >
+                        <button class="btn btn-primary" type="submit">
+                            Comment
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-2">
+                    {% for comment in post.comments %}
+                        <div class="mb-1">
+                            <strong>{{ comment.author.name }}</strong>:
+                            {{ comment.comment }}
+                        </div>
+                    {% endfor %}
+                </div>
+
+
                 {% if session.get("user_id") %}
                 <a href="{{ url_for('blog_detail', post_id=post.id) }}"
                 class="btn btn-outline-primary btn-sm mt-auto">
@@ -142,6 +195,7 @@
             <input class="form-control mb-3" type="password" name="password" placeholder="Password" required>
             <input class="form-control mb-3" type="password" name="confirm" placeholder="Confirm Password" required>
             <button class="btn btn-purple w-100">Register</button>
+            <p class="text-center mt-3">Already have an account?<a href="/login">Login</a></p>
         </form>
     </div>
 </div>
@@ -163,6 +217,7 @@
     </div>
 {% endif %}
 
+
 {% if page == "login" %}
 <div class="row justify-content-center">
     <div class="col-md-5 card p-4 shadow">
@@ -177,6 +232,7 @@
     </div>
 </div>
 {% endif %}
+
 
 {% if page == "forgot_password" %}
     <div class="container mt-5">
@@ -197,7 +253,6 @@
             </form>
             <div class="text-center mt-3">
                 <a href="/login">Back to Login</a>
-                
             </div>
         </div>
     </div>
@@ -251,9 +306,9 @@
     </div>
 {% endif %}
 
+
 {% if page == "profile" %}
 <div class="row">
-
     <div class="col-md-4">
         <div class="card p-4 shadow text-center">
 
@@ -314,6 +369,7 @@
 </div>
 {% endif %}
 
+
 {% if page == "blog_detail" %}
 <div class="container mt-4">
     <div class="row justify-content-center">
@@ -337,6 +393,47 @@
                     <p class="small" style="white-space: pre-line;">
                         {{ post.content }}
                     </p>
+                    {% if "user_id" in session %}
+                    {% set liked = post.likes| selectattr("user_id", "equalto", session.get("user_id"))| list | length > 0%}
+
+                    <a href="{{ url_for('like_post', post_id=post.id) }}"
+                    class="btn btn-sm {{ 'btn-danger' if liked else 'btn-outline-danger' }} p-1">
+
+                        <i class="bi {{ 'bi-heart-fill' if liked else 'bi-heart' }}"></i>
+                        <span class="ms-1">{{ post.likes | length }}</span>
+                    </a>
+
+                {% else %}
+                <a href="{{ url_for('login') }}"
+                class="btn btn-sm btn-outline-danger p-1">
+                    <i class="bi bi-heart"></i>
+                    <span>{{ post.likes | length }}</span>
+                </a>
+                {% endif %}
+
+                <form action="{{ url_for('add_comment', post_id=post.id) }}" method="POST" class="mt-2">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            name="comment"
+                            class="form-control"
+                            placeholder="Write a comment..."
+                            required
+                        >
+                        <button class="btn btn-primary" type="submit">
+                            Comment
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-2">
+                    {% for comment in post.comments %}
+                        <div class="mb-1">
+                            <strong>{{ comment.author.name }}</strong>:
+                            {{ comment.comment }}
+                        </div>
+                    {% endfor %}
+                </div>
 
                     <a href="{{ request.referrer or url_for('home') }}"
                        class="btn btn-outline-secondary btn-sm mt-2">
@@ -350,7 +447,6 @@
     </div>
 </div>
 {% endif %}
-
 
 
 {% if page == "edit_profile" %}
@@ -443,10 +539,7 @@
                 
                 <div class="mb-3">
                     <label class="form-label">Content</label>
-                    <textarea class="form-control"
-                              name="content"
-                              rows="5"
-                              required>{{ blog.content }}</textarea>
+                    <textarea class="form-control" name="content" rows="5" required>{{ blog.content }}</textarea>
                 </div>
 
                 
@@ -462,10 +555,7 @@
                 
                 <div class="mb-3">
                     <label class="form-label">New Image URL (optional)</label>
-                    <input type="url"
-                           class="form-control"
-                           name="image_url"
-                           placeholder="Paste new image URL">
+                    <input type="url" class="form-control" name="image_url" placeholder="Paste new image URL">
                 </div>
 
                 <div class="text-center mb-2">OR</div>

@@ -428,45 +428,6 @@ def follow_user(user_id):
     return redirect(request.referrer)
 
 
-# @app.route("/comment/<int:post_id>", methods=["POST"])
-# def add_comment(post_id):
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
-
-#     text = request.form.get("comment")
-
-#     if text:
-#         new_comment = Comment(
-#             comment=text,
-#             user_id=session["user_id"],
-#             post_id=post_id
-#         )
-#         db.session.add(new_comment)
-#         db.session.commit()
-
-#     return redirect(url_for("profile"))
-
-
-# @app.route("/like/<int:post_id>", methods=["POST"])
-# def like_post(post_id):
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
-
-#     existing_like = Like.query.filter_by(user_id=session["user_id"],post_id=post_id).first()
-
-#     if existing_like:
-#         db.session.delete(existing_like)  
-#     else:
-#         new_like = Like(
-#             user_id=session["user_id"],
-#             post_id=post_id
-#         )
-#         db.session.add(new_like)
-
-#     db.session.commit()
-#     return redirect(url_for("profile"))
-
-
 @app.route("/edit_blog/<int:blog_id>", methods=["GET"])
 def edit_blog(blog_id):
     if "user_id" not in session:
@@ -513,52 +474,50 @@ def update_blog(blog_id):
     db.session.commit()
     return redirect(url_for("profile"))
 
+
 @app.route("/blog/<int:post_id>")
 def blog_detail(post_id):
     post = Post.query.get_or_404(post_id)
 
-    return render_template(
-        "main.html",
-        page="blog_detail",
-        post=post,
-        is_logged_in=("user_id" in session)
+    return render_template("main.html", page="blog_detail", post=post, is_logged_in=("user_id" in session))
+
+
+@app.route("/comment/<int:post_id>", methods=["POST"])
+def add_comment(post_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    comment_text = request.form.get("comment")
+
+    if not comment_text or not comment_text.strip():
+        return redirect(request.referrer)
+
+    comment = Comment(
+        comment=comment_text.strip(),
+        post_id=post_id,
+        user_id=session["user_id"]
     )
 
+    db.session.add(comment)
+    db.session.commit()
 
-# @app.route("/comment", methods=["POST"])
-# def comment():
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
-
-#     post_id = request.form.get("post_id")
-#     text = request.form.get("comment")
-
-#     new_comment = Comment(
-#         comment=text,
-#         post_id=post_id,
-#         user_id=session["user_id"]
-#     )
-
-#     db.session.add(new_comment)
-#     db.session.commit()
-
-#     return redirect(request.referrer)
+    return redirect(request.referrer)
 
 
-# @app.route("/like/<int:post_id>")
-# def like_post(post_id):
-#     if "user_id" not in session:
-#         return redirect(url_for("login"))
+@app.route("/like/<int:post_id>")
+def like_post(post_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-#     existing = Like.query.filter_by(user_id=session["user_id"], post_id=post_id).first()
+    existing = Like.query.filter_by(user_id=session["user_id"],post_id=post_id).first()
 
-#     if existing:
-#         db.session.delete(existing)
-#     else:
-#         db.session.add(Like(user_id=session["user_id"], post_id=post_id))
+    if existing:
+        db.session.delete(existing)
+    else:
+        db.session.add(Like(user_id=session["user_id"], post_id=post_id))
 
-#     db.session.commit()
-#     return redirect(request.referrer)
+    db.session.commit()
+    return redirect(request.referrer)
 
     
 @app.route("/logout", methods=["POST"])
