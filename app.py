@@ -89,17 +89,11 @@ def user_name():
     return {"name": ""}
 
 
-
 @app.route("/")
 def home():
     posts = Post.query.order_by(Post.created_at.desc()).all()
 
-    return render_template(
-        "main.html",
-        page="home",
-        posts=posts,
-        is_logged_in=("user_id" in session)
-    )
+    return render_template("main.html",page="home",posts=posts,is_logged_in=("user_id" in session))
 
 
 @app.route("/register")
@@ -261,26 +255,34 @@ def screen():
 
     current_user_id = session["user_id"]
 
-    posts = (
-        Post.query
-        .filter(Post.user_id != current_user_id)
-        .order_by(Post.created_at.desc())
-        .all()
-    )
+    posts = (Post.query.filter(Post.user_id != current_user_id).order_by(Post.created_at.desc()).all())
 
     following_ids = {
         f.following_id
         for f in Follow.query.filter_by(follower_id=current_user_id).all()
     }
 
-    return render_template(
-        "main.html",
-        page="screen",
-        posts=posts,
-        following_ids=following_ids,
-        is_logged_in=True
-    )
+    return render_template("main.html", page="screen", posts=posts, following_ids=following_ids, is_logged_in=True)
 
+
+@app.route("/profile")
+def profile():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, session["user_id"])
+    if not user:
+        session.clear()
+        return redirect(url_for("login"))
+
+    posts = Post.query.filter_by(user_id=user.id).order_by(Post.created_at.desc()).all()
+
+    followers = Follow.query.filter_by(following_id=user.id).count()
+    following = Follow.query.filter_by(follower_id=user.id).count()
+
+    is_following = Follow.query.filter_by(follower_id=session["user_id"], following_id=user.id).first() is not None
+
+    return render_template("main.html",page="profile",user=user,posts=posts,followers=followers,following=following,is_following=is_following)
 
 
 @app.route("/update_profile_pic", methods=["POST"])
@@ -300,6 +302,7 @@ def update_profile_pic():
 
     return redirect(url_for("edit_profile"))
 
+
 @app.route("/edit_profile")
 def edit_profile():
     if "user_id" not in session:
@@ -312,37 +315,39 @@ def edit_profile():
     return render_template("main.html",page="edit_profile",user=user,followers=followers,following=following)
 
 
-@app.route("/profile")
-def profile():
+@app.route("/delete_blog/<int:blog_id>", methods=["POST"])
+def delete_blog(blog_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    user = db.session.get(User, session["user_id"])
-    if not user:
-        session.clear()
+    blog = Post.query.get_or_404(blog_id)
+
+    if blog.user_id != session["user_id"]:
+        return "Unauthorized", 403
+
+    db.session.delete(blog)
+    db.session.commit()
+
+    return redirect(url_for("profile"))
+
+
+@app.route("/follow/<int:user_id>", methods=["POST"])
+def follow_user(user_id):
+    if "user_id" not in session:
         return redirect(url_for("login"))
 
-    posts = Post.query.filter_by(user_id=user.id)\
-                      .order_by(Post.created_at.desc())\
-                      .all()
+    if session["user_id"] == user_id:
+        return redirect(request.referrer)
 
-    followers = Follow.query.filter_by(following_id=user.id).count()
-    following = Follow.query.filter_by(follower_id=user.id).count()
+    existing = Follow.query.filter_by(follower_id=session["user_id"],following_id=user_id).first()
 
-    is_following = Follow.query.filter_by(
-        follower_id=session["user_id"],
-        following_id=user.id
-    ).first() is not None
+    if existing:
+        db.session.delete(existing)  
+    else:
+        db.session.add(Follow(follower_id=session["user_id"],following_id=user_id))
 
-    return render_template(
-        "main.html",
-        page="profile",
-        user=user,
-        posts=posts,
-        followers=followers,
-        following=following,
-        is_following=is_following
-    )
+    db.session.commit()
+    return redirect(request.referrer)
 
 
 @app.route("/add_blog", methods=["GET", "POST"])
@@ -385,47 +390,6 @@ def add_blog():
     db.session.commit()
 
     return redirect(url_for("profile"))
-
-
-@app.route("/delete_blog/<int:blog_id>", methods=["POST"])
-def delete_blog(blog_id):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    blog = Post.query.get_or_404(blog_id)
-
-    if blog.user_id != session["user_id"]:
-        return "Unauthorized", 403
-
-    db.session.delete(blog)
-    db.session.commit()
-
-    return redirect(url_for("profile"))
-
-
-@app.route("/follow/<int:user_id>", methods=["POST"])
-def follow_user(user_id):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    if session["user_id"] == user_id:
-        return redirect(request.referrer)
-
-    existing = Follow.query.filter_by(
-        follower_id=session["user_id"],
-        following_id=user_id
-    ).first()
-
-    if existing:
-        db.session.delete(existing)  
-    else:
-        db.session.add(Follow(
-            follower_id=session["user_id"],
-            following_id=user_id
-        ))
-
-    db.session.commit()
-    return redirect(request.referrer)
 
 
 @app.route("/edit_blog/<int:blog_id>", methods=["GET"])
@@ -492,16 +456,60 @@ def add_comment(post_id):
     if not comment_text or not comment_text.strip():
         return redirect(request.referrer)
 
-    comment = Comment(
-        comment=comment_text.strip(),
-        post_id=post_id,
-        user_id=session["user_id"]
-    )
-
-    db.session.add(comment)
+    comment = Comment(comment=comment_text.strip(), post_id=post_id, user_id=session["user_id"])
+    timestamp=datetime.now()
+    db.session.add(comment,timestamp)
     db.session.commit()
 
     return redirect(request.referrer)
+
+
+@app.route("/delete_comment/<int:comment_id>", methods=["POST"])
+def delete_comment(comment_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    comment = Comment.query.get_or_404(comment_id)
+
+    if comment.user_id != session["user_id"]:
+        return "Unauthorized", 403
+
+    db.session.delete(comment)
+    db.session.commit()
+
+    return redirect(url_for("screen"))
+
+
+@app.route("/edit_comment/<int:comment_id>", methods=["GET"])
+def edit_comment(comment_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    comment = Comment.query.get_or_404(comment_id)
+
+    if comment.user_id != session["user_id"]:
+        return "Unauthorized", 403
+
+    return render_template("main.html", page="edit_comment", comment=comment)
+
+
+@app.route("/update_comment/<int:comment_id>", methods=["POST"])
+def update_comment(comment_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    comment = db.session.get(Comment, comment_id)
+    if not comment:
+        return "Comment not found", 404
+
+    if comment.user_id != session["user_id"]:
+        return "Unauthorized", 403
+
+    new_text = request.form.get("comment")
+    comment.comment = new_text
+
+    db.session.commit()
+    return redirect(url_for("screen"))  
 
 
 @app.route("/like/<int:post_id>")

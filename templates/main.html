@@ -157,48 +157,55 @@
                         <div class="mb-1">
                             <strong>{{ comment.author.name }}</strong>:
                             {{ comment.comment }}
+
+                            <h6 class="text-muted">
+                                {{ comment.timestamp.strftime("%d %b %Y • %I:%M %p") }}
+                            </h6>
+
+                            {% if session.get("user_id") == comment.author.id %}
+                                <a href="/edit_comment/{{ comment.id }}"
+                                class="btn btn-warning btn-sm">✏️</a>
+
+                                <form action="/delete_comment/{{ comment.id }}"
+                                    method="POST"
+                                    style="display:inline;">
+                                    <button class="btn btn-danger btn-sm">🗑</button>
+                                </form>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>
 
 
-                {% if session.get("user_id") %}
-                <a href="{{ url_for('blog_detail', post_id=post.id) }}"
-                class="btn btn-outline-primary btn-sm mt-auto">
-                    Read More
-                </a>
 
+                {% if session.get("user_id") %}
+                    <a href="{{ url_for('blog_detail', post_id=post.id) }}" class="btn btn-outline-primary btn-sm mt-auto">Read More</a>
                 {% else %}
-                <a href="/login"
-                   class="btn btn-outline-primary btn-sm mt-auto">
-                    Login to Read More
-                </a>
+                    <a href="/login" class="btn btn-outline-primary btn-sm mt-auto">Login to Read More</a>
                 {% endif %}
 
             </div>
         </div>
-
     </div>
     {% endfor %}
-
 </div>
 {% endif %}
 
 
 {% if page == "register" %}
-<div class="row justify-content-center">
-    <div class="col-md-5 card p-4 shadow">
-        <h3 class="text-center mb-3">Create Account</h3>
-        <form action="/register" method="post">
-            <input class="form-control mb-3" name="name" placeholder="Name" required>
-            <input class="form-control mb-3" type="email" name="gmail" placeholder="Gmail" required>
-            <input class="form-control mb-3" type="password" name="password" placeholder="Password" required>
-            <input class="form-control mb-3" type="password" name="confirm" placeholder="Confirm Password" required>
-            <button class="btn btn-purple w-100">Register</button>
-            <p class="text-center mt-3">Already have an account?<a href="/login">Login</a></p>
-        </form>
+    <div class="row justify-content-center">
+        <div class="col-md-5 card p-4 shadow">
+            <h3 class="text-center mb-3">Create Account</h3>
+            <form action="/register" method="post">
+                <input class="form-control mb-3" name="name" placeholder="Name" required>
+                <input class="form-control mb-3" type="email" name="gmail" placeholder="Gmail" required>
+                <input class="form-control mb-3" type="password" name="password" placeholder="Password" required>
+                <input class="form-control mb-3" type="password" name="confirm" placeholder="Confirm Password" required>
+                <button class="btn btn-purple w-100">Register</button>
+                <p class="text-center mt-3">Already have an account?<a href="/login">Login</a></p>
+            </form>
+        </div>
     </div>
-</div>
 {% endif %}
 
 
@@ -219,18 +226,18 @@
 
 
 {% if page == "login" %}
-<div class="row justify-content-center">
-    <div class="col-md-5 card p-4 shadow">
-        <h3 class="text-center mb-3">Login</h3>
-        <form action="/login" method="post">
-            <input class="form-control mb-3" type="email" name="gmail" placeholder="Gmail" required>
-            <input class="form-control mb-3" type="password" name="password" placeholder="Password" required>
-            <button class="btn btn-purple w-100">Login</button>
-            <a href="/forgot_password" class="text-purple d-block text-center">Forgot Password?</a>
-                <p class="text-center mt-3">No account?<a href="/register">Register</a></p>
-        </form>
+    <div class="row justify-content-center">
+        <div class="col-md-5 card p-4 shadow">
+            <h3 class="text-center mb-3">Login</h3>
+            <form action="/login" method="post">
+                <input class="form-control mb-3" type="email" name="gmail" placeholder="Gmail" required>
+                <input class="form-control mb-3" type="password" name="password" placeholder="Password" required>
+                <button class="btn btn-purple w-100">Login</button>
+                <a href="/forgot_password" class="text-purple d-block text-center">Forgot Password?</a>
+                    <p class="text-center mt-3">No account?<a href="/register">Register</a></p>
+            </form>
+        </div>
     </div>
-</div>
 {% endif %}
 
 
@@ -313,12 +320,9 @@
         <div class="card p-4 shadow text-center">
 
             {% if user.profile_pic %}
-                <img src="{{ user.profile_pic }}"
-                     class="rounded-circle mx-auto mb-3"
-                     style="width: 140px; height: 140px; object-fit: cover;">
+                <img src="{{ user.profile_pic }}" class="rounded-circle mx-auto mb-3" style="width: 140px; height: 140px; object-fit: cover;">
             {% else %}
-                <img src="https://via.placeholder.com/140"
-                     class="rounded-circle mx-auto mb-3">
+                <img src="https://via.placeholder.com/140" class="rounded-circle mx-auto mb-3">
             {% endif %}
 
             <h4 class="fw-bold">{{ user.name }}</h4>
@@ -431,15 +435,25 @@
                         <div class="mb-1">
                             <strong>{{ comment.author.name }}</strong>:
                             {{ comment.comment }}
+
+                            <h6 class="text-muted">
+                                {{ comment.timestamp.strftime("%d %b %Y • %I:%M %p") }}
+                            </h6>
+
+                            {% if session.get("user_id") == comment.author.id %}
+                                <a href="/edit_comment/{{ comment.id }}"
+                                class="btn btn-warning btn-sm">✏️</a>
+
+                                <form action="/delete_comment/{{ comment.id }}"
+                                    method="POST"
+                                    style="display:inline;">
+                                    <button class="btn btn-danger btn-sm">🗑</button>
+                                </form>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>
-
-                    <a href="{{ request.referrer or url_for('home') }}"
-                       class="btn btn-outline-secondary btn-sm mt-2">
-                        ← Back
-                    </a>
-
+                    <a href="{{ request.referrer or url_for('home') }}" class="btn btn-outline-secondary btn-sm mt-2">← Back</a>
                 </div>
             </div>
 
@@ -469,28 +483,30 @@
 
             <hr>
 
-            <form action="/update_profile_pic"
-                  method="POST"
-                  enctype="multipart/form-data">
+            <form action="/update_profile_pic" method="POST" enctype="multipart/form-data">
 
-                <label class="form-label fw-semibold">
-                    Change Profile Picture
-                </label>
+                <label class="form-label fw-semibold">Change Profile Picture</label>
 
-                <input type="file"
-                       name="profile_pic"
-                       class="form-control mb-3"
-                       accept="image/*"
-                       required>
+                <input type="file" name="profile_pic" class="form-control mb-3" accept="image/*" required>
 
-                <button class="btn btn-purple w-100">
-                    Update Profile Picture
-                </button>
+                <button class="btn btn-purple w-100">Update Profile Picture</button>
             </form>
 
         </div>
     </div>
 </div>
+{% endif %}
+
+
+{% if page == "edit_comment" %}
+<form method="POST" action="/update_comment/{{ comment.id }}">
+    <div class="mb-2">
+        <textarea name="comment" class="form-control" rows="3" required>{{ comment.comment }}</textarea>
+    </div>
+
+    <button class="btn btn-success btn-sm">Update</button>
+    <a href="{{ url_for('screen') }}" class="btn btn-secondary btn-sm">Cancel</a>
+</form>
 {% endif %}
 
 
@@ -523,17 +539,12 @@
             {% endif %}
 
             <form method="POST"
-                  action="{{ url_for('update_blog', blog_id=blog.id) }}"
-                  enctype="multipart/form-data">
+                  action="{{ url_for('update_blog', blog_id=blog.id) }}" enctype="multipart/form-data">
 
     
                 <div class="mb-3">
                     <label class="form-label">Title</label>
-                    <input type="text"
-                           class="form-control"
-                           name="title"
-                           value="{{ blog.title }}"
-                           required>
+                    <input type="text" class="form-control" name="title" value="{{ blog.title }}" required>
                 </div>
 
                 
@@ -546,9 +557,7 @@
                 {% if blog.image %}
                 <div class="mb-3">
                     <label class="form-label">Current Image</label><br>
-                    <img src="{{ blog.image }}"
-                         class="img-fluid rounded"
-                         style="max-height: 250px;">
+                    <img src="{{ blog.image }}" class="img-fluid rounded" style="max-height: 250px;">
                 </div>
                 {% endif %}
 
@@ -563,23 +572,13 @@
                 
                 <div class="mb-3">
                     <label class="form-label">Upload New Image</label>
-                    <input type="file"
-                           class="form-control"
-                           name="image_file"
-                           accept="image/*">
+                    <input type="file" class="form-control" name="image_file" accept="image/*">
                 </div>
 
                 
                 <div class="d-flex justify-content-between">
-                    <a href="{{ url_for('profile') }}"
-                       class="btn btn-secondary">
-                        Cancel
-                    </a>
-
-                    <button type="submit"
-                            class="btn btn-primary">
-                        Update Blog
-                    </button>
+                    <a href="{{ url_for('profile') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Update Blog</button>
                 </div>
 
             </form>
