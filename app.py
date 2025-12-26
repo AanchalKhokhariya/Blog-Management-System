@@ -82,6 +82,7 @@ class Follow(db.Model):
 with app.app_context():
     db.create_all()
 
+
 @app.context_processor
 def user_name():
     if "name" in session:
@@ -248,6 +249,7 @@ def reset_password():
 
     return redirect(url_for("login"))
 
+
 @app.route("/screen")
 def screen():
     if "user_id" not in session:
@@ -285,6 +287,18 @@ def profile():
     return render_template("main.html",page="profile",user=user,posts=posts,followers=followers,following=following,is_following=is_following)
 
 
+@app.route("/edit_profile")
+def edit_profile():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user = db.session.get(User, session["user_id"])
+    followers = Follow.query.filter_by(follower_id=user.id).count()
+    following = Follow.query.filter_by(following_id=user.id).count()
+
+    return render_template("main.html",page="edit_profile",user=user,followers=followers,following=following)
+
+
 @app.route("/update_profile_pic", methods=["POST"])
 def update_profile_pic():
     if "user_id" not in session:
@@ -301,18 +315,6 @@ def update_profile_pic():
         db.session.commit()
 
     return redirect(url_for("edit_profile"))
-
-
-@app.route("/edit_profile")
-def edit_profile():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    user = db.session.get(User, session["user_id"])
-    followers = Follow.query.filter_by(follower_id=user.id).count()
-    following = Follow.query.filter_by(following_id=user.id).count()
-
-    return render_template("main.html",page="edit_profile",user=user,followers=followers,following=following)
 
 
 @app.route("/delete_blog/<int:blog_id>", methods=["POST"])
