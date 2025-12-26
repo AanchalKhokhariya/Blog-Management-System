@@ -30,12 +30,12 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
 
-
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False, unique=True)
     gmail = db.Column(db.String(200), nullable=False, unique=True)
+    bio = db.Column(db.String(200), nullable=True)
     password = db.Column(db.Text, nullable=False)
     profile_pic = db.Column(db.String(300)) 
     posts = db.relationship("Post", backref="author", lazy=True)
@@ -273,6 +273,8 @@ def profile():
         return redirect(url_for("login"))
 
     user = db.session.get(User, session["user_id"])
+    bio = request.form.get("bio")
+
     if not user:
         session.clear()
         return redirect(url_for("login"))
@@ -284,7 +286,7 @@ def profile():
 
     is_following = Follow.query.filter_by(follower_id=session["user_id"], following_id=user.id).first() is not None
 
-    return render_template("main.html",page="profile",user=user,posts=posts,followers=followers,following=following,is_following=is_following)
+    return render_template("main.html",page="profile",user=user,bio=bio,posts=posts,followers=followers,following=following,is_following=is_following)
 
 
 @app.route("/edit_profile")
@@ -293,28 +295,33 @@ def edit_profile():
         return redirect(url_for("login"))
 
     user = db.session.get(User, session["user_id"])
+    
     followers = Follow.query.filter_by(follower_id=user.id).count()
     following = Follow.query.filter_by(following_id=user.id).count()
 
-    return render_template("main.html",page="edit_profile",user=user,followers=followers,following=following)
+    return render_template("main.html",page="edit_profile",user=user, followers=followers, following=following)
 
 
-@app.route("/update_profile_pic", methods=["POST"])
-def update_profile_pic():
+@app.route("/update_profile", methods=["POST"])
+def update_profile():
     if "user_id" not in session:
         return redirect(url_for("login"))
+
+    user = db.session.get(User, session["user_id"])
+
+    bio = request.form.get("bio")
+    if bio is not None:  
+        user.bio = bio
 
     file = request.files.get("profile_pic")
     if file and file.filename:
         filename = secure_filename(file.filename)
         path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         file.save(path)
-
-        user = db.session.get(User, session["user_id"])
         user.profile_pic = f"/static/uploads/{filename}"
-        db.session.commit()
 
-    return redirect(url_for("edit_profile"))
+    db.session.commit()
+    return redirect(url_for("profile"))
 
 
 @app.route("/delete_blog/<int:blog_id>", methods=["POST"])
