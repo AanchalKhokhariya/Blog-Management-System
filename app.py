@@ -83,17 +83,9 @@ with app.app_context():
     db.create_all()
 
 
-@app.context_processor
-def user_name():
-    if "name" in session:
-        return {"name": session["name"]}
-    return {"name": ""}
-
-
 @app.route("/")
 def home():
     posts = Post.query.order_by(Post.created_at.desc()).all()
-
     return render_template("main.html",page="home",posts=posts,is_logged_in=("user_id" in session))
 
 

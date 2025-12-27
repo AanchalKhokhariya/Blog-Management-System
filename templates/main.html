@@ -41,7 +41,7 @@
 
 <nav class="navbar navbar-expand-lg mb-4">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="/">BlogApp</a>
+        <a class="navbar-brand fw-bold">BlogApp</a>
 
         <div class="ms-auto d-flex gap-2">
             {% if page == "first_page" or page == "register" or page == "login" or page == "home" %}
@@ -127,12 +127,7 @@
                     <div>
                     
                     </div>
-                    <a class="text-decoration-none"
-                    data-bs-toggle="collapse"
-                    href="#comments-{{ post.id }}"
-                    role="button"
-                    aria-expanded="false"
-                    aria-controls="comments-{{ post.id }}">
+                    <a class="text-decoration-none" data-bs-toggle="collapse" href="#comments-{{ post.id }}" role="button" aria-expanded="false" aria-controls="comments-{{ post.id }}">
                         <i class="bi bi-chat"></i>
                     </a>
 
@@ -140,9 +135,7 @@
 
                         <form action="{{ url_for('add_comment', post_id=post.id) }}" method="POST">
                             <div class="input-group">
-                                <input type="text" name="comment" class="form-control"
-                                    placeholder="Write a comment..."
-                                    required>
+                                <input type="text" name="comment" class="form-control" placeholder="Write a comment..." required>
                                 <button class="btn btn-primary" type="submit">Comment</button>
                             </div>
                         </form>
@@ -182,6 +175,9 @@
 
 
 {% if page == "register" %}
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
     <div class="row justify-content-center">
         <div class="col-md-5 card p-4 shadow">
             <h3 class="text-center mb-3">Create Account</h3>
@@ -215,6 +211,9 @@
 
 
 {% if page == "login" %}
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
     <div class="row justify-content-center">
         <div class="col-md-5 card p-4 shadow">
             <h3 class="text-center mb-3">Login</h3>
