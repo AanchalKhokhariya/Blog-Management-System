@@ -206,6 +206,7 @@
             <input type="text" name="otp" class="form-control mb-3" placeholder="Enter OTP" required>
             <button class="btn btn-purple w-100">Verify</button>
         </form>
+        <p class="text-muted mt-2">Didn’t receive OTP?<a href="{{ url_for('resend_otp') }}">Resend OTP</a></p>
     </div>
 {% endif %}
 
@@ -310,7 +311,7 @@
                 {% if user.profile_pic %}
                     <img src="{{ user.profile_pic }}" class="rounded-circle mx-auto mb-3" style="width: 140px; height: 140px; object-fit: cover;">
                 {% else %}
-                    <img src="https://via.placeholder.com/140" class="rounded-circle mx-auto mb-3">
+                    <img src="static/uploads/default_pic.jpeg" class="rounded-circle mx-auto mb-3">
                 {% endif %}
 
                 <h4 class="fw-bold">{{ user.name }}</h4>
@@ -464,7 +465,6 @@
                 <hr>
 
                 <form action="/update_profile" method="POST" enctype="multipart/form-data">
-
                     <textarea name="bio" class="form-control mb-3" rows="3" placeholder="Write something about yourself...">{{ user.bio }}</textarea>
 
                     <label class="form-label fw-semibold">Change Profile Picture</label>

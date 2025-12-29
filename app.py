@@ -35,7 +35,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False, unique=True)
     gmail = db.Column(db.String(200), nullable=False, unique=True)
-    bio = db.Column(db.String(200), nullable=True)
+    bio = db.Column(db.String(200), nullable=True, default='')
     password = db.Column(db.Text, nullable=False)
     profile_pic = db.Column(db.String(300)) 
     posts = db.relationship("Post", backref="author", lazy=True)
@@ -125,7 +125,7 @@ def register():
 
     return render_template("main.html", page="verify_otp")
 
-    
+
 @app.route("/verify_otp", methods=["POST"])
 def verify_otp():
     input_otp = request.form.get("otp")
@@ -147,6 +147,26 @@ def verify_otp():
 
     return redirect(url_for("login"))
 
+
+@app.route("/resend_otp")
+def resend_otp():
+    
+    if "temp_gmail" not in session:
+        return redirect(url_for("register"))
+
+    otp = str(random.randint(100000, 999999))
+    session["otp"] = otp
+
+    send_otp_email(session["temp_gmail"], otp)
+
+    return render_template(
+        "main.html",
+        page="verify_otp",
+        message="A new OTP has been sent to your email."
+    )
+
+
+
 def send_otp_email(receiver, otp):
     sender = app.config["MAIL_USERNAME"]
     password = app.config["MAIL_PASSWORD"]
@@ -165,7 +185,7 @@ def send_otp_email(receiver, otp):
     except Exception as e:
         print("Email Error:", e)
         return False
-
+# I want to add resend_otp 
 
 @app.route("/login")
 def show_login():
