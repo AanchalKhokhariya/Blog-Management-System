@@ -159,12 +159,7 @@ def resend_otp():
 
     send_otp_email(session["temp_gmail"], otp)
 
-    return render_template(
-        "main.html",
-        page="verify_otp",
-        message="A new OTP has been sent to your email."
-    )
-
+    return render_template("main.html", page="verify_otp", message="A new OTP has been sent to your email.")
 
 
 def send_otp_email(receiver, otp):
@@ -185,7 +180,7 @@ def send_otp_email(receiver, otp):
     except Exception as e:
         print("Email Error:", e)
         return False
-# I want to add resend_otp 
+    
 
 @app.route("/login")
 def show_login():
@@ -242,6 +237,20 @@ def verify_fp_otp():
         return render_template("main.html", page="verify_fp_otp", error="Invalid OTP")
 
     return render_template("main.html", page="reset_password")
+
+
+@app.route("/resend_fp_otp")
+def resend_fp_otp():
+    
+    if "fp_gmail" not in session:
+        return redirect(url_for("login"))
+
+    otp = str(random.randint(100000, 999999))
+    session["fp_otp"] = otp
+
+    send_otp_email(session["fp_gmail"], otp)
+
+    return render_template("main.html", page="verify_fp_otp", message="A new OTP has been sent to your email.")
 
 
 @app.route("/reset_password", methods=["POST"])
