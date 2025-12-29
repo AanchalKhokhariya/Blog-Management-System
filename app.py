@@ -85,12 +85,16 @@ with app.app_context():
 
 @app.route("/")
 def home():
+    if "user_id" in session:
+        return redirect(url_for("screen"))
     posts = Post.query.order_by(Post.created_at.desc()).all()
-    return render_template("main.html",page="home",posts=posts,is_logged_in=("user_id" in session))
+    return render_template("main.html", page="home", posts=posts, is_logged_in=("user_id" in session))
 
 
 @app.route("/register")
 def show_register():
+    if "user_id" in session:
+        return redirect(url_for("screen"))  
     return render_template("main.html", page="register", is_logged_in="user_id" in session)
 
 
@@ -185,7 +189,7 @@ def send_otp_email(receiver, otp):
 @app.route("/login")
 def show_login():
     if "user_id" in session:
-        return redirect(url_for("home"))  
+        return redirect(url_for("screen"))  
     return render_template("main.html", page="login")
 
 
@@ -284,7 +288,6 @@ def screen():
         f.following_id
         for f in Follow.query.filter_by(follower_id=current_user_id).all()
     }
-
     return render_template("main.html", page="screen", posts=posts, following_ids=following_ids, is_logged_in=True)
 
 
@@ -329,7 +332,6 @@ def update_profile():
         return redirect(url_for("login"))
 
     user = db.session.get(User, session["user_id"])
-
     bio = request.form.get("bio")
     if bio is not None:  
         user.bio = bio

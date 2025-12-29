@@ -313,9 +313,7 @@
                 <h4 class="fw-bold">{{ user.name }}</h4>
                 <h6 class="fw-semibold">{{ user.bio }}</h6>
                 <p class="text-muted">{{ user.gmail }}</p>
-
                 <hr>
-
                 <p><strong>Followers:</strong> {{ followers }}</p>
                 <p><strong>Following:</strong> {{ following }}</p>
 
@@ -491,7 +489,6 @@
     <div class="row justify-content-center">
         <div class="col-md-6 card p-4 shadow">
             <h4 class="text-center mb-3">Create New Blog</h4>
-
             <form method="post" action="/add_blog" enctype="multipart/form-data">
                 <input class="form-control mb-3" name="title" placeholder="Title" required>
                 <textarea class="form-control mb-3" name="content" rows="5" placeholder="Write your thoughts..." required></textarea>
