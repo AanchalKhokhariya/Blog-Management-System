@@ -83,12 +83,39 @@ with app.app_context():
     db.create_all()
 
 
+# @app.context_processor
+# def inject_user():
+#     if "user_id" in session:
+#         return {"user": db.session.get(User, session["user_id"])}
+#     return {"user": None}
+
+
 @app.route("/")
 def home():
     if "user_id" in session:
         return redirect(url_for("screen"))
+
+    user = None
     posts = Post.query.order_by(Post.created_at.desc()).all()
-    return render_template("main.html", page="home", posts=posts, is_logged_in=("user_id" in session))
+
+    return render_template("main.html",page="home",posts=posts,user=user,is_logged_in=False)
+
+@app.route("/screen")
+def screen():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    current_user_id = session["user_id"]
+
+    posts = (Post.query.filter(Post.user_id != current_user_id).order_by(Post.created_at.desc()).all())
+
+    following_ids = {
+        f.following_id
+        for f in Follow.query.filter_by(follower_id=current_user_id).all()
+    }
+    return render_template("main.html", page="screen", posts=posts, following_ids=following_ids, is_logged_in=True)
+
+
 
 
 @app.route("/register")
@@ -273,22 +300,6 @@ def reset_password():
     db.session.commit()
 
     return redirect(url_for("login"))
-
-
-@app.route("/screen")
-def screen():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    current_user_id = session["user_id"]
-
-    posts = (Post.query.filter(Post.user_id != current_user_id).order_by(Post.created_at.desc()).all())
-
-    following_ids = {
-        f.following_id
-        for f in Follow.query.filter_by(follower_id=current_user_id).all()
-    }
-    return render_template("main.html", page="screen", posts=posts, following_ids=following_ids, is_logged_in=True)
 
 
 @app.route("/profile")
@@ -484,16 +495,17 @@ def add_comment(post_id):
         return redirect(url_for("login"))
 
     comment_text = request.form.get("comment")
+    
 
     if not comment_text or not comment_text.strip():
         return redirect(request.referrer)
-
     comment = Comment(comment=comment_text.strip(), post_id=post_id, user_id=session["user_id"])
     timestamp=datetime.now()
     db.session.add(comment,timestamp)
     db.session.commit()
 
     return redirect(request.referrer)
+
 
 
 @app.route("/delete_comment/<int:comment_id>", methods=["POST"])
