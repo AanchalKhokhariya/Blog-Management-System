@@ -51,7 +51,7 @@
             {% endif %}
 
             {% if page in ["profile", "screen", "add_blog", "edit_profile"] %}
-                <a href="/screen" class="btn btn-outline-light">Blogs</a>
+                <a href="/" class="btn btn-outline-light">Blogs</a>
                 <a href="/profile" class="btn btn-outline-light">Profile</a>
                 <a href="/add_blog" class="btn btn-outline-light">New Blog</a>
                 <a href="/edit_profile" class="btn btn-outline-light">Edit Profile</a>
@@ -431,7 +431,7 @@
                             </div>
                         {% endfor %}
                     </div>
-                        <a href="{{ url_for('screen') }}" class="btn btn-outline-secondary btn-sm mt-2">← Back</a>
+                        <a href="{{ url_for('home') }}" class="btn btn-outline-secondary btn-sm mt-2">← Back</a>
                     </form>
                     </div>
                 </div>
@@ -480,7 +480,7 @@
         </div>
 
         <button class="btn btn-success btn-sm">Update</button>
-        <a href="{{ url_for('screen') }}" class="btn btn-secondary btn-sm">Cancel</a>
+        <a href="{{ url_for('home') }}" class="btn btn-secondary btn-sm">Cancel</a>
     </form>
 {% endif %}
 

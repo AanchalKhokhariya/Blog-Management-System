@@ -83,27 +83,11 @@ with app.app_context():
     db.create_all()
 
 
-# @app.context_processor
-# def inject_user():
-#     if "user_id" in session:
-#         return {"user": db.session.get(User, session["user_id"])}
-#     return {"user": None}
-
-
 @app.route("/")
 def home():
-    if "user_id" in session:
-        return redirect(url_for("screen"))
-
-    user = None
-    posts = Post.query.order_by(Post.created_at.desc()).all()
-
-    return render_template("main.html",page="home",posts=posts,user=user,is_logged_in=False)
-
-@app.route("/screen")
-def screen():
     if "user_id" not in session:
-        return redirect(url_for("login"))
+        posts = Post.query.order_by(Post.created_at.desc()).all()
+        return render_template("main.html", page="home", posts=posts, user=None, is_logged_in=False)
 
     current_user_id = session["user_id"]
 
@@ -113,15 +97,14 @@ def screen():
         f.following_id
         for f in Follow.query.filter_by(follower_id=current_user_id).all()
     }
+
     return render_template("main.html", page="screen", posts=posts, following_ids=following_ids, is_logged_in=True)
-
-
 
 
 @app.route("/register")
 def show_register():
     if "user_id" in session:
-        return redirect(url_for("screen"))  
+        return redirect(url_for("home"))  
     return render_template("main.html", page="register", is_logged_in="user_id" in session)
 
 
@@ -216,7 +199,7 @@ def send_otp_email(receiver, otp):
 @app.route("/login")
 def show_login():
     if "user_id" in session:
-        return redirect(url_for("screen"))  
+        return redirect(url_for("home"))  
     return render_template("main.html", page="login")
 
 
@@ -235,7 +218,7 @@ def login():
         session["gmail"] = user.gmail
         session["name"] = user.name
 
-        return redirect(url_for("screen"))
+        return redirect(url_for("home"))
 
     return render_template("main.html", page="login", error="Invalid email or password")
 
@@ -521,7 +504,7 @@ def delete_comment(comment_id):
     db.session.delete(comment)
     db.session.commit()
 
-    return redirect(url_for("screen"))
+    return redirect(url_for("home"))
 
 
 @app.route("/edit_comment/<int:comment_id>", methods=["GET"])
@@ -553,7 +536,7 @@ def update_comment(comment_id):
     comment.comment = new_text
 
     db.session.commit()
-    return redirect(url_for("screen"))  
+    return redirect(url_for("home"))  
 
 
 @app.route("/like/<int:post_id>")
