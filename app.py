@@ -118,8 +118,8 @@ def register():
     if password != confirm:
         return render_template("main.html", page="register", error="Passwords do not match")
     
-    if User.query.filter((User.name == name) | (User.gmail == gmail)).first():
-        return render_template("main.html", page="register", error="User already exists!")
+    # if User.query.filter((User.name == name) | (User.gmail == gmail)).first():
+    #     return render_template("main.html", page="register", error="User already exists!")
 
     if User.query.filter(User.name == name).first():
         return render_template("main.html", page="register", error="Username already exists!")
@@ -467,8 +467,9 @@ def update_blog(blog_id):
 
 @app.route("/blog/<int:post_id>")
 def blog_detail(post_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
     post = Post.query.get_or_404(post_id)
-
     return render_template("main.html", page="blog_detail", post=post, is_logged_in=("user_id" in session))
 
 
@@ -478,7 +479,6 @@ def add_comment(post_id):
         return redirect(url_for("login"))
 
     comment_text = request.form.get("comment")
-    
 
     if not comment_text or not comment_text.strip():
         return redirect(request.referrer)
@@ -488,7 +488,6 @@ def add_comment(post_id):
     db.session.commit()
 
     return redirect(request.referrer)
-
 
 
 @app.route("/delete_comment/<int:comment_id>", methods=["POST"])
@@ -504,7 +503,7 @@ def delete_comment(comment_id):
     db.session.delete(comment)
     db.session.commit()
 
-    return redirect(url_for("home"))
+    return redirect(request.referrer)
 
 
 @app.route("/edit_comment/<int:comment_id>", methods=["GET"])
@@ -536,7 +535,7 @@ def update_comment(comment_id):
     comment.comment = new_text
 
     db.session.commit()
-    return redirect(url_for("home"))  
+    return redirect(url_for("home") or request.referrer)  
 
 
 @app.route("/like/<int:post_id>")
@@ -553,6 +552,15 @@ def like_post(post_id):
 
     db.session.commit()
     return redirect(request.referrer)
+
+
+@app.route("/rating/<int:post_id>")
+def rating(post_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    post = Post.query.get_or_404(post_id)
+    return render_template("main.html", page="blog_detail", post=post, is_logged_in=("user_id" in session))
 
     
 @app.route("/logout", methods=["POST"])
