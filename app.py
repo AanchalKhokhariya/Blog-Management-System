@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, session, url_for, redirect
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import random
@@ -54,6 +55,7 @@ class Post(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     comments = db.relationship("Comment", backref="post", lazy=True, cascade="all, delete")
     likes = db.relationship("Like", backref="post", lazy=True, cascade="all, delete")
+    ratings = db.relationship("Rating", backref="post", lazy=True, cascade="all, delete")
 
 
 class Comment(db.Model):
@@ -79,6 +81,13 @@ class Follow(db.Model):
     following_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
 
+class Rating(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    rating = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
+    
+
 with app.app_context():
     db.create_all()
 
@@ -87,18 +96,18 @@ with app.app_context():
 def home():
     if "user_id" not in session:
         posts = Post.query.order_by(Post.created_at.desc()).all()
-        return render_template("main.html", page="home", posts=posts, user=None, is_logged_in=False)
+        return render_template("main.html",page="home",posts=posts,is_logged_in=False)
 
     current_user_id = session["user_id"]
 
-    posts = (Post.query.filter(Post.user_id != current_user_id).order_by(Post.created_at.desc()).all())
+    posts = Post.query.filter(Post.user_id != current_user_id).order_by(Post.created_at.desc()).all()
 
     following_ids = {
         f.following_id
-        for f in Follow.query.filter_by(follower_id=current_user_id).all()
+        for f in Follow.query.filter_by(follower_id=current_user_id)
     }
 
-    return render_template("main.html", page="screen", posts=posts, following_ids=following_ids, is_logged_in=True)
+    return render_template("main.html",page="screen",posts=posts,following_ids=following_ids,is_logged_in=True)
 
 
 @app.route("/register")
@@ -117,9 +126,6 @@ def register():
 
     if password != confirm:
         return render_template("main.html", page="register", error="Passwords do not match")
-    
-    # if User.query.filter((User.name == name) | (User.gmail == gmail)).first():
-    #     return render_template("main.html", page="register", error="User already exists!")
 
     if User.query.filter(User.name == name).first():
         return render_template("main.html", page="register", error="Username already exists!")
@@ -470,7 +476,17 @@ def blog_detail(post_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
     post = Post.query.get_or_404(post_id)
-    return render_template("main.html", page="blog_detail", post=post, is_logged_in=("user_id" in session))
+
+    avg_rating = db.session.query(func.avg(Rating.rating)).filter(Rating.post_id == post.id).scalar()
+
+    total_votes = Rating.query.filter_by(post_id=post.id).count()
+
+    user_rating = None
+    if "user_id" in session:
+        r = Rating.query.filter_by(user_id=session["user_id"],post_id=post.id).first()
+        user_rating = r.rating if r else 0
+
+    return render_template("main.html",page="blog_detail",post=post,avg_rating=round(avg_rating, 1) if avg_rating else 0,total_votes=total_votes,user_rating=user_rating,is_logged_in=("user_id" in session))
 
 
 @app.route("/comment/<int:post_id>", methods=["POST"])
@@ -554,15 +570,40 @@ def like_post(post_id):
     return redirect(request.referrer)
 
 
-@app.route("/rating/<int:post_id>")
-def rating(post_id):
+def get_average_rating(post_id):
+    avg = db.session.query(func.avg(Rating.rating))\
+        .filter(Rating.post_id == post_id)\
+        .scalar()
+    return round(avg, 1) if avg else 0
+
+
+@app.route("/rate/<int:post_id>", methods=["POST"])
+def rate_post(post_id):
     if "user_id" not in session:
         return redirect(url_for("login"))
-    
-    post = Post.query.get_or_404(post_id)
-    return render_template("main.html", page="blog_detail", post=post, is_logged_in=("user_id" in session))
 
-    
+    rating_value = request.form.get("rating")
+
+    if not rating_value:
+        return redirect(request.referrer)
+
+    rating_value = int(rating_value)
+
+    if rating_value < 1 or rating_value > 5:
+        return redirect(request.referrer)
+
+    existing_rating = Rating.query.filter_by(user_id=session["user_id"],post_id=post_id).first()
+
+    if existing_rating:
+        existing_rating.rating = rating_value
+    else:
+        new_rating = Rating(rating=rating_value,user_id=session["user_id"],post_id=post_id)
+        db.session.add(new_rating)
+
+    db.session.commit()
+    return redirect(request.referrer)
+
+
 @app.route("/logout", methods=["POST"])
 def logout():
     session.clear()

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blog Management System</title>
@@ -36,17 +37,7 @@
         .checked {
             color: orange;
         }
-        
-        .card {
-        max-width: 33rem;
-        background: #fff;
-        margin: 0 1rem;
-        padding: 1rem;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-        width: 100%;
-        border-radius: 0.5rem;
-        }
-        
+
         .star {
         font-size: 4vh;
         cursor: pointer;
@@ -119,7 +110,6 @@
         <div class="col-md-4">
 
             <div class="card h-100 shadow-sm">
-                
 
                 {% if post.image %}
                 <img src="{{ post.image }}" class="card-img-top" style="height: 220px; object-fit: cover;">
@@ -141,13 +131,10 @@
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="fa fa-star checked"></span>
-                            <span class="fa fa-star checked"></span>
-                            <span class="fa fa-star checked"></span>
-                            <span class="fa fa-star"></span>
-                            <span class="fa fa-star"></span>
-                        </div>
+                        {% set avg = post.ratings | map(attribute='rating') | sum / (post.ratings|length)
+                            if post.ratings|length > 0 else 0 %}
+
+                        <p>{{ avg|round(1) }} / 5 </p>
 
                         <a href="{{ url_for('blog_detail', post_id=post.id) }}" class="btn btn-outline-success">Rating</a>
                     </div>
@@ -158,7 +145,7 @@
                     {% if "user_id" in session %}
                         {% set liked = post.likes | selectattr("user_id", "equalto", session.get("user_id")) | list | length > 0 %}
                         <a href="{{ url_for('like_post', post_id=post.id) }}" class="btn btn-sm {{ 'btn-danger' if liked else 'btn-outline-danger' }} p-1">
-                            <i class="bi {{ 'bi-heart-fill' if liked else 'biw-heart' }}"></i>
+                            <i class="bi {{ 'bi-heart-fill' if liked else 'bi-heart' }}"></i>
                             <span class="ms-1">{{ post.likes | length }}</span>
                         </a>
 
@@ -378,8 +365,7 @@
 
                     {% if post.image %}
                     <img src="{{ post.image }}"
-                        class="img-fluid rounded mb-2 d-block mx-auto"
-                        style="width: 500px; height: 500px; object-fit: cover;">
+                        class="img-fluid rounded mb-2 d-block mx-auto" style="width: 500px; height: 500px; object-fit: cover;">
                     {% endif %}
 
                     <h2><u>{{ post.title }}</u></h2>
@@ -391,12 +377,9 @@
                     <br>
 
                     <p>{{ post.content }}</p>
-                    <a href="{{ url_for('edit_blog', blog_id=post.id) }}"
-                    class="btn btn-outline-success me-2">EDIT</a>
+                    <a href="{{ url_for('edit_blog', blog_id=post.id) }}" class="btn btn-outline-success me-2">EDIT</a>
 
-                    <form action="{{ url_for('delete_blog', blog_id=post.id) }}"
-                        method="POST"
-                        style="display: inline;">
+                    <form action="{{ url_for('delete_blog', blog_id=post.id) }}" method="POST" style="display: inline;">
                         <button type="submit" class="btn btn-outline-danger">DELETE</button>
                     </form>
                 </div>
@@ -422,9 +405,7 @@
                         </p>
 
                         {% if post.image %}
-                            <img src="{{ post.image }}"
-                                class="img-fluid rounded mb-2"
-                                style="max-width: 60%; max-height: 50%; display: block; margin: auto;">
+                            <img src="{{ post.image }}" class="img-fluid rounded mb-2" style="max-width: 60%; max-height: 50%; display: block; margin: auto;">
                         {% endif %}
 
                         <p class="small" style="white-space: pre-line;">
@@ -432,23 +413,31 @@
                         </p>
                         
                         <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                            <span class="fa fa-star checked"></span>
-                            <span class="fa fa-star checked"></span>
-                            <span class="fa fa-star checked"></span>
-                            <span class="fa fa-star"></span>
-                            <span class="fa fa-star"></span>
+                        <p>{{ avg_rating }} / 5</p>
+
+                        {% if is_logged_in %}
+                        <form method="POST" action="{{ url_for('rate_post', post_id=post.id) }}">
+                            <input type="hidden" name="rating" id="ratingInput">
+
+                            <div class="rating-box text-center">
+                                {% for i in range(1, 6) %}
+                                    <span
+                                        class="star
+                                            {% if user_rating >= i %}
+                                                {{ ['one','two','three','four','five'][i-1] }}
+                                            {% endif %}"onclick="submitRating({{ i }})">
+                                        ★
+                                    </span>
+                                {% endfor %}
                             </div>
-                            
-                            <div>
-                            <span onclick="gfg(1)" class="star">★</span>
-                            <span onclick="gfg(2)" class="star">★</span>
-                            <span onclick="gfg(3)" class="star">★</span>
-                            <span onclick="gfg(4)" class="star">★</span>
-                            <span onclick="gfg(5)" class="star">★</span>
-                            <script src="script.js"></script>
-                            </div>
-                        </div>
+                        </form>
+                        {% else %}
+                            <a href="{{ url_for('login') }}" class="btn btn-sm btn-outline-secondary">
+                                Login to rate
+                            </a>
+                        {% endif %}
+                    </div>
+
 
                         {% if "user_id" in session %}
                         {% set liked = post.likes| selectattr("user_id", "equalto", session.get("user_id"))| list | length > 0%}
@@ -629,5 +618,32 @@
     </div>
 {% endif %}
 </div>
+
+<script>
+    // function rate(el, rating) {
+    //     let stars = el.parentElement.children;
+    //     let output = el.parentElement.nextElementSibling;
+
+    //     for (let i = 0; i < stars.length; i++) {
+    //         stars[i].classList.remove("one","two","three","four","five");
+    //     }
+
+    //     let cls = ["one","two","three","four","five"][rating-1];
+
+    //     for (let i = 0; i < rating; i++) {
+    //         stars[i].classList.add(cls);
+    //     }
+
+    //     output.innerText = "Rating: " + rating + "/5";
+    // }
+function submitRating(value) {
+    document.getElementById("ratingInput").value = value;
+    document.getElementById("ratingInput").form.submit();
+}
+
+
+</script>
+
 </body>
 </html>
+
